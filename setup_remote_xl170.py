@@ -77,6 +77,14 @@ cmd = "cd ~/{}/caladan/breakwater && make && make -C bindings/cc"\
         " && make -C apps/netbench/".format(ARTIFACT_PATH)
 execute_remote([server_conn, client_conn] + agent_conns, cmd, True)
 
+print("Building memcached on client")
+cmd = "cd ~/{}/memcached-client/ && make".format(ARTIFACT_PATH)
+execute_remote([client_conn] + agent_conns, cmd, True)
+
+print("Building caladan subcomponents on server via build_all.sh")
+cmd = "cd ~/{}/ && ./build_all.sh".format(ARTIFACT_PATH)
+execute_remote([server_conn], cmd, True)
+
 # this is Inho's not mine (below)
 # print("Setting up memcahced...")
 # cmd = "cd ~/{}/shenango-memcached && ./version.sh && autoreconf -i"\
