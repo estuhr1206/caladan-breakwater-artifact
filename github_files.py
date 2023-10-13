@@ -18,7 +18,8 @@ client_conn.connect(hostname = CLIENT, username = USERNAME, pkey = k)
 
 # distributing code-base
 print("Distributing sources...")
-repo_name = (os.getcwd().split('/'))[-1]
+# repo_name = (os.getcwd().split('/'))[-1]
+repo_name = "caladan-breakwater-base"
 # - server
 cmd = "rsync -azh -e \"ssh -i {} -o StrictHostKeyChecking=no"\
         " -o UserKnownHostsFile=/dev/null\" --progress ../{}/"\

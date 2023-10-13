@@ -46,16 +46,16 @@ execute_remote([server_conn, client_conn] + agent_conns, cmd, True)
 
 # why is this installing make, AFTER we've already used it a bit??
 print("installing clang")
-cmd = "sudo apt install make gcc cmake pkg-config libnl-3-dev libnl-route-3-dev"\
+cmd = "sudo apt-get -y install make gcc cmake pkg-config libnl-3-dev libnl-route-3-dev"\
         " libnuma-dev uuid-dev libssl-dev libaio-dev libcunit1-dev libclang-dev"
 execute_remote([server_conn, client_conn] + agent_conns, cmd, True)
 
 print("installing make, gcc, cmake, etc.")
-cmd = "sudo apt install clang"
+cmd = "sudo apt-get -y install clang"
 execute_remote([server_conn, client_conn] + agent_conns, cmd, True)
 
 print("installing build-essential, etc.")
-cmd = "sudo apt install build-essential libnuma-dev clang autoconf"\
+cmd = "sudo apt-get -y install build-essential libnuma-dev clang autoconf"\
         " autotools-dev m4 automake libevent-dev  libpcre++-dev libtool"\
         " ragel libev-dev moreutils parallel cmake python3 python3-pip"\
         " libjemalloc-dev libaio-dev libdb5.3++-dev numactl hwloc libmnl-dev"\
@@ -77,30 +77,22 @@ cmd = "cd ~/{}/caladan/breakwater && make && make -C bindings/cc"\
         " && make -C apps/netbench/".format(ARTIFACT_PATH)
 execute_remote([server_conn, client_conn] + agent_conns, cmd, True)
 
+# this is Inho's not mine (below)
 # print("Setting up memcahced...")
 # cmd = "cd ~/{}/shenango-memcached && ./version.sh && autoreconf -i"\
 #         " && ./configure --with-shenango=../shenango"\
 #         .format(ARTIFACT_PATH)
 # execute_remote([server_conn], cmd, True)
 
+##### trying out the caladan all version of this
 # build snappy for caladan
-print("building snappy")
-cmd = "cd  ~/{}/caladan/apps/storage_service/snappy && mkdir build".format(ARTIFACT_PATH)
-execute_remote([server_conn, client_conn] + agent_conns, cmd, True)
+# print("building snappy")
+# cmd = "cd  ~/{}/caladan/apps/storage_service/snappy && mkdir build".format(ARTIFACT_PATH)
+# execute_remote([server_conn, client_conn] + agent_conns, cmd, True)
 
-cmd = "cd ~/{}/caladan/apps/storage_service/snappy/build && cmake ../ && make".format(ARTIFACT_PATH)
-execute_remote([server_conn, client_conn] + agent_conns, cmd, True)
-
-# building caladan sub components
-print("building caladan sub components")
-cmd = "cd  ~/{} && for dir in caladan caladan/shim caladan/bindings/cc caladan/apps/storage_service"\
-        " caladan/apps/netbench; do make -C $dir; done".format(ARTIFACT_PATH)
-execute_remote([server_conn, client_conn] + agent_conns, cmd, True)
-
-# hm export commands probably aren't great here
-print("setting SHENAN ")
-cmd = "cd  ~/{} ".format(ARTIFACT_PATH)
-execute_remote([server_conn, client_conn] + agent_conns, cmd, True)
+# cmd = "cd ~/{}/caladan/apps/storage_service/snappy/build && cmake ../ && make".format(ARTIFACT_PATH)
+# execute_remote([server_conn, client_conn] + agent_conns, cmd, True)
+#####
 
 
 print("Done.")
