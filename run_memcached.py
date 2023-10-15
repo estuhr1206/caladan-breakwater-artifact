@@ -19,6 +19,7 @@ NUM_CONNS = 1000
 # List of offered load
 OFFERED_LOADS = [500000, 1000000, 1500000, 2000000, 2500000, 3000000,
                  3500000, 4000000, 4500000, 5000000, 5500000, 6000000]
+SINGLE_CLIENT_LOAD = 800000
 
 # keys for memcached client, limited by this value. ex. rand() % MAX_KEY_INDEX is used as the key for the request
 MAX_KEY_INDEX = 100000
@@ -203,62 +204,90 @@ print("starting server IOKernel")
 cmd = "cd ~/{}/caladan && sudo /users/estuhr/caladan/iokerneld ias"\
     " 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18  2>&1 | ts %s > iokernel.node-0.log".format(ARTIFACT_PATH)
 iok_sessions += execute_remote([server_conn], cmd, False)
-sleep(1)
 
+print("starting client IOKernel")
+cmd = "sudo /users/estuhr/caladan/iokerneld simple 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18"\
+    " 2>&1 | ts %s > iokernel.node-1.log".format(ARTIFACT_PATH)
+iok_sessions += execute_remote([client_conn], cmd, False)
+sleep(1)
 ### END IOKERNEL
 
 # Start memcached
 print("Starting Memcached server...")
-cmd = "cd ~/{} && sudo ./shenango-memcached/memcached {} server.config"\
-        " -p 8001 -v -c 32768 -m 64000 -b 32768 -o hashpower=18"\
-        .format(ARTIFACT_PATH, OVERLOAD_ALG)
+# cmd = "cd ~/{} && sudo ./shenango-memcached/memcached {} server.config"\
+#         " -p 8001 -v -c 32768 -m 64000 -b 32768 -o hashpower=18"\
+#         .format(ARTIFACT_PATH, OVERLOAD_ALG)
+cmd = "cd ~/{} && sudo ./memcached/memcached {} memcached.config -t 17"\
+    " -U 5056 -p 5056 -c 32768 -m 32000 -b 32768 -o"\
+    " hashpower=25,no_hashexpand,no_lru_crawler,no_lru_maintainer,idle_timeout=0,no_slab_reassign"\
+    " > memcached.out 2> memcached.err".format(ARTIFACT_PATH, OVERLOAD_ALG)
 server_session = execute_remote([server_conn], cmd, False)
 server_session = server_session[0]
 
 sleep(2)
-print("Populating entries...")
-cmd = "cd ~/{} && sudo ./memcached-client/mcclient {} client.config client {:d} {} SET"\
-        " {:d} {:d} {:d} {:d} >stdout.out 2>&1"\
-        .format(ARTIFACT_PATH, OVERLOAD_ALG, NUM_CONNS, server_ip, MAX_KEY_INDEX,
-                slo, 0, POPULATING_LOAD)
-client_session = execute_remote([client_conn], cmd, False)
-client_session = client_session[0]
+### TODO unsure what this entire section is doing
+# print("Populating entries...")
+# cmd = "cd ~/{} && sudo ./memcached-client/mcclient {} client.config client {:d} {} SET"\
+#         " {:d} {:d} {:d} {:d} >stdout.out 2>&1"\
+#         .format(ARTIFACT_PATH, OVERLOAD_ALG, NUM_CONNS, server_ip, MAX_KEY_INDEX,
+#                 slo, 0, POPULATING_LOAD)
+# client_session = execute_remote([client_conn], cmd, False)
+# client_session = client_session[0]
 
-client_session.recv_exit_status()
+# client_session.recv_exit_status()
+
+# sleep(1)
+
+# # Remove temporary output
+# cmd = "cd ~/{} && rm output.csv output.json".format(ARTIFACT_PATH)
+# execute_remote([client_conn], cmd, True, False)
+
+# sleep(1)
+### END TODO of the unsure section
+duration = 20                   # duration in seconds now I think.
+mean = 842                      # no clue. unused? not sure if it's unused.
+distribution = "zero"           # not sure what this is. seems unused.
+pps = 0.8                       # packets per second. seems unused.
+samples = 1                     # no idea what this is. seems unused.
+spps = 0.0                      # start packets per second, seems unused.
+loadrate_duration = 20000000    # seems to be the runtime in microseconds
+print("\tExecuting client...")
+client_agent_sessions = []
+cmd = "cd ~/{} && sudo ./memcached-client/mcclient {} client.config client {:d} {}"\
+        " USR {:d} {:d} {:d} {:d} {:d} {:d} {} {:f} {:d} {:f} {:d} > 0-node-1.memcached.out 2> 0-node-1.memcached.err"\
+        .format(ARTIFACT_PATH, OVERLOAD_ALG, NUM_CONNS, server_ip,
+                MAX_KEY_INDEX, slo, NUM_AGENT, SINGLE_CLIENT_LOAD, duration, mean, distribution,
+                pps, samples, spps, loadrate_duration)
+client_agent_sessions += execute_remote([client_conn], cmd, False)
 
 sleep(1)
 
-# Remove temporary output
-cmd = "cd ~/{} && rm output.csv output.json".format(ARTIFACT_PATH)
-execute_remote([client_conn], cmd, True, False)
+### No need for this right now I think TODO
+# for offered_load in OFFERED_LOADS:
+#     print("Load = {:d}".format(offered_load))
+#     # - clients
+#     print("\tExecuting client...")
+#     client_agent_sessions = []
+#     cmd = "cd ~/{} && sudo ./memcached-client/mcclient {} client.config client {:d} {}"\
+#             " USR {:d} {:d} {:d} {:d} >stdout.out 2>&1"\
+#             .format(ARTIFACT_PATH, OVERLOAD_ALG, NUM_CONNS, server_ip,
+#                     MAX_KEY_INDEX, slo, NUM_AGENT, offered_load)
+#     client_agent_sessions += execute_remote([client_conn], cmd, False)
 
-sleep(1)
+#     sleep(1)
 
-for offered_load in OFFERED_LOADS:
-    print("Load = {:d}".format(offered_load))
-    # - clients
-    print("\tExecuting client...")
-    client_agent_sessions = []
-    cmd = "cd ~/{} && sudo ./memcached-client/mcclient {} client.config client {:d} {}"\
-            " USR {:d} {:d} {:d} {:d} >stdout.out 2>&1"\
-            .format(ARTIFACT_PATH, OVERLOAD_ALG, NUM_CONNS, server_ip,
-                    MAX_KEY_INDEX, slo, NUM_AGENT, offered_load)
-    client_agent_sessions += execute_remote([client_conn], cmd, False)
+#     # - Agents
+#     print("\tExecuting agents...")
+#     cmd = "cd ~/{} && sudo ./memcached-client/mcclient {} client.config agent {}"\
+#             " >stdout.out 2>&1".format(ARTIFACT_PATH, OVERLOAD_ALG, client_ip)
+#     client_agent_sessions += execute_remote(agent_conns, cmd, False)
 
-    sleep(1)
+#     # Wait for client and agents
+#     print("\tWaiting for client and agents...")
+#     for client_agent_session in client_agent_sessions:
+#         client_agent_session.recv_exit_status()
 
-    # - Agents
-    print("\tExecuting agents...")
-    cmd = "cd ~/{} && sudo ./memcached-client/mcclient {} client.config agent {}"\
-            " >stdout.out 2>&1".format(ARTIFACT_PATH, OVERLOAD_ALG, client_ip)
-    client_agent_sessions += execute_remote(agent_conns, cmd, False)
-
-    # Wait for client and agents
-    print("\tWaiting for client and agents...")
-    for client_agent_session in client_agent_sessions:
-        client_agent_session.recv_exit_status()
-
-    sleep(2)
+#     sleep(2)
 
 
 # Kill server
