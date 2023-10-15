@@ -20,14 +20,20 @@ NUM_CONNS = 1000
 OFFERED_LOADS = [500000, 1000000, 1500000, 2000000, 2500000, 3000000,
                  3500000, 4000000, 4500000, 5000000, 5500000, 6000000]
 
+# keys for memcached client, limited by this value. ex. rand() % MAX_KEY_INDEX is used as the key for the request
 MAX_KEY_INDEX = 100000
 
+# TODO generate_shenango_config
+# not stated in N's, is this default?
 ENABLE_DIRECTPATH = True
+# runtime_spinning_kthreads being 0 in config means this is false.
 SPIN_SERVER = True
+# why is this true in N's config
 DISABLE_WATCHDOG = False
 
 NUM_CORES_SERVER = 10
 NUM_CORES_CLIENT = 16
+# end TODO generate_shenango_config
 
 slo = 50
 POPULATING_LOAD = 200000
@@ -41,6 +47,8 @@ if OVERLOAD_ALG not in ["breakwater", "seda", "dagor", "nocontrol"]:
     print("Unknown overload algorithm: " + OVERLOAD_ALG)
     exit()
 
+# modifying config in breakwater/src/bw_config.h
+# TODO this will need to be a remote command, with pathing probably modified for the remote machines
 cmd = "sed -i'.orig' -e \'s/#define SBW_RTT_US.*/#define SBW_RTT_US\\t\\t\\t{:d}/g\'"\
         " configs/bw_config.h".format(NET_RTT)
 execute_local(cmd)
@@ -82,7 +90,8 @@ NUM_AGENT = len(AGENTS)
 
 # configure Shenango IPs for config
 server_ip = "192.168.1.200"
-client_ip = "192.168.1.100"
+# making this match N's config
+client_ip = "192.168.1.7"
 agent_ips = []
 netmask = "255.255.255.0"
 gateway = "192.168.1.1"
@@ -111,6 +120,7 @@ for agent in AGENTS:
     agent_conns.append(agent_conn)
 
 # Clean-up environment
+# TODO add kill for garbage collector?
 print("Cleaning up machines...")
 cmd = "sudo killall -9 memcached & sudo killall -9 iokerneld"
 execute_remote([server_conn], cmd, True, False)
@@ -122,68 +132,80 @@ sleep(1)
 
 
 # Distribuing config files
-print("Distributing configs...")
-# - server
-cmd = "scp -P 22 -i {} -o StrictHostKeyChecking=no configs/*"\
-        " {}@{}:~/{}/shenango/breakwater/src/ >/dev/null"\
-        .format(KEY_LOCATION, USERNAME, SERVER, ARTIFACT_PATH)
-execute_local(cmd)
-# - client
-cmd = "scp -P 22 -i {} -o StrictHostKeyChecking=no configs/*"\
-        " {}@{}:~/{}/shenango/breakwater/src/ >/dev/null"\
-        .format(KEY_LOCATION, USERNAME, CLIENT, ARTIFACT_PATH)
-execute_local(cmd)
-# - agents
-for agent in AGENTS:
-    cmd = "scp -P 22 -i {} -o StrictHostKeyChecking=no configs/*"\
-            " {}@{}:~/{}/shenango/breakwater/src/ >/dev/null"\
-            .format(KEY_LOCATION, USERNAME, agent, ARTIFACT_PATH)
-    execute_local(cmd)
+# TODO does this just copy all the breakwater source files?
+# print("Distributing configs...")
+# # - server
+# cmd = "scp -P 22 -i {} -o StrictHostKeyChecking=no configs/*"\
+#         " {}@{}:~/{}/shenango/breakwater/src/ >/dev/null"\
+#         .format(KEY_LOCATION, USERNAME, SERVER, ARTIFACT_PATH)
+# execute_local(cmd)
+# # - client
+# cmd = "scp -P 22 -i {} -o StrictHostKeyChecking=no configs/*"\
+#         " {}@{}:~/{}/shenango/breakwater/src/ >/dev/null"\
+#         .format(KEY_LOCATION, USERNAME, CLIENT, ARTIFACT_PATH)
+# execute_local(cmd)
+# # - agents
+# for agent in AGENTS:
+#     cmd = "scp -P 22 -i {} -o StrictHostKeyChecking=no configs/*"\
+#             " {}@{}:~/{}/shenango/breakwater/src/ >/dev/null"\
+#             .format(KEY_LOCATION, USERNAME, agent, ARTIFACT_PATH)
+#     execute_local(cmd)
 
 # Generating config files
-print("Generating config files...")
-generate_shenango_config(True, server_conn, server_ip, netmask, gateway,
-                         NUM_CORES_SERVER, ENABLE_DIRECTPATH, SPIN_SERVER, DISABLE_WATCHDOG)
-generate_shenango_config(False, client_conn, client_ip, netmask, gateway,
-                         NUM_CORES_CLIENT, ENABLE_DIRECTPATH, True, False)
-for i in range(NUM_AGENT):
-    generate_shenango_config(False, agent_conns[i], agent_ips[i], netmask,
-                             gateway, NUM_CORES_CLIENT, ENABLE_DIRECTPATH, True, False)
+# TODO I'm doing configs myself so
+# print("Generating config files...")
+# generate_shenango_config(True, server_conn, server_ip, netmask, gateway,
+#                          NUM_CORES_SERVER, ENABLE_DIRECTPATH, SPIN_SERVER, DISABLE_WATCHDOG)
+# generate_shenango_config(False, client_conn, client_ip, netmask, gateway,
+#                          NUM_CORES_CLIENT, ENABLE_DIRECTPATH, True, False)
+# for i in range(NUM_AGENT):
+#     generate_shenango_config(False, agent_conns[i], agent_ips[i], netmask,
+#                              gateway, NUM_CORES_CLIENT, ENABLE_DIRECTPATH, True, False)
 
 # Rebuild Shanango
-print("Building Shenango...")
-cmd = "cd ~/{}/shenango && make clean && make && make -C bindings/cc"\
-        .format(ARTIFACT_PATH)
-execute_remote([server_conn, client_conn] + agent_conns,
-               cmd, True)
+# TODO shouldn't need to rebuild
+# print("Building Shenango...")
+# cmd = "cd ~/{}/shenango && make clean && make && make -C bindings/cc"\
+#         .format(ARTIFACT_PATH)
+# execute_remote([server_conn, client_conn] + agent_conns,
+#                cmd, True)
 
-# Build Breakwater
-print("Building Breakwater...")
-cmd = "cd ~/{}/shenango/breakwater && make clean && make && make -C bindings/cc"\
-        .format(ARTIFACT_PATH)
-execute_remote([server_conn, client_conn] + agent_conns,
-                 cmd, True)
+# # Build Breakwater
+# print("Building Breakwater...")
+# cmd = "cd ~/{}/shenango/breakwater && make clean && make && make -C bindings/cc"\
+#         .format(ARTIFACT_PATH)
+# execute_remote([server_conn, client_conn] + agent_conns,
+#                  cmd, True)
 
-# Build Memcached
-print("Building memcached...")
-cmd = "cd ~/{}/shenango-memcached && make clean && make"\
-        .format(ARTIFACT_PATH)
-execute_remote([server_conn], cmd, True)
+# # Build Memcached
+# print("Building memcached...")
+# cmd = "cd ~/{}/shenango-memcached && make clean && make"\
+#         .format(ARTIFACT_PATH)
+# execute_remote([server_conn], cmd, True)
 
-# Build McClient
-print("Building mcclient...")
-cmd = "cd ~/{}/memcached-client && make clean && make"\
-        .format(ARTIFACT_PATH)
-execute_remote([client_conn] + agent_conns, cmd, True)
+# # Build McClient
+# print("Building mcclient...")
+# cmd = "cd ~/{}/memcached-client && make clean && make"\
+#         .format(ARTIFACT_PATH)
+# execute_remote([client_conn] + agent_conns, cmd, True)
 
-# Execute IOKernel
+
+### IOKERNEL
+# Old Execute IOKernel
+# iok_sessions = []
+# print("Executing IOKernel...")
+# cmd = "cd ~/{}/shenango && sudo ./iokerneld".format(ARTIFACT_PATH)
+# iok_sessions += execute_remote([server_conn, client_conn] + agent_conns,
+#                                cmd, False)
+
 iok_sessions = []
-print("Executing IOKernel...")
-cmd = "cd ~/{}/shenango && sudo ./iokerneld".format(ARTIFACT_PATH)
-iok_sessions += execute_remote([server_conn, client_conn] + agent_conns,
-                               cmd, False)
-
+print("starting server IOKernel")
+cmd = "cd ~/{}/caladan && sudo /users/estuhr/caladan/iokerneld ias"\
+    " 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18  2>&1 | ts %s > iokernel.node-0.log".format(ARTIFACT_PATH)
+iok_sessions += execute_remote([server_conn], cmd, False)
 sleep(1)
+
+### END IOKERNEL
 
 # Start memcached
 print("Starting Memcached server...")
