@@ -28,9 +28,9 @@ MAX_KEY_INDEX = 100000
 # not stated in N's, is this default?
 ENABLE_DIRECTPATH = True
 # runtime_spinning_kthreads being 0 in config means this is false.
-SPIN_SERVER = True
+SPIN_SERVER = False
 # why is this true in N's config
-DISABLE_WATCHDOG = False
+DISABLE_WATCHDOG = True
 
 NUM_CORES_SERVER = 10
 NUM_CORES_CLIENT = 16
@@ -132,65 +132,6 @@ execute_remote([client_conn] + agent_conns,
 sleep(1)
 
 
-# Distribuing config files
-# TODO does this just copy all the breakwater source files?
-# print("Distributing configs...")
-# # - server
-# cmd = "scp -P 22 -i {} -o StrictHostKeyChecking=no configs/*"\
-#         " {}@{}:~/{}/shenango/breakwater/src/ >/dev/null"\
-#         .format(KEY_LOCATION, USERNAME, SERVER, ARTIFACT_PATH)
-# execute_local(cmd)
-# # - client
-# cmd = "scp -P 22 -i {} -o StrictHostKeyChecking=no configs/*"\
-#         " {}@{}:~/{}/shenango/breakwater/src/ >/dev/null"\
-#         .format(KEY_LOCATION, USERNAME, CLIENT, ARTIFACT_PATH)
-# execute_local(cmd)
-# # - agents
-# for agent in AGENTS:
-#     cmd = "scp -P 22 -i {} -o StrictHostKeyChecking=no configs/*"\
-#             " {}@{}:~/{}/shenango/breakwater/src/ >/dev/null"\
-#             .format(KEY_LOCATION, USERNAME, agent, ARTIFACT_PATH)
-#     execute_local(cmd)
-
-# Generating config files
-# TODO I'm doing configs myself so
-# print("Generating config files...")
-# generate_shenango_config(True, server_conn, server_ip, netmask, gateway,
-#                          NUM_CORES_SERVER, ENABLE_DIRECTPATH, SPIN_SERVER, DISABLE_WATCHDOG)
-# generate_shenango_config(False, client_conn, client_ip, netmask, gateway,
-#                          NUM_CORES_CLIENT, ENABLE_DIRECTPATH, True, False)
-# for i in range(NUM_AGENT):
-#     generate_shenango_config(False, agent_conns[i], agent_ips[i], netmask,
-#                              gateway, NUM_CORES_CLIENT, ENABLE_DIRECTPATH, True, False)
-
-# Rebuild Shanango
-# TODO shouldn't need to rebuild
-# print("Building Shenango...")
-# cmd = "cd ~/{}/shenango && make clean && make && make -C bindings/cc"\
-#         .format(ARTIFACT_PATH)
-# execute_remote([server_conn, client_conn] + agent_conns,
-#                cmd, True)
-
-# # Build Breakwater
-# print("Building Breakwater...")
-# cmd = "cd ~/{}/shenango/breakwater && make clean && make && make -C bindings/cc"\
-#         .format(ARTIFACT_PATH)
-# execute_remote([server_conn, client_conn] + agent_conns,
-#                  cmd, True)
-
-# # Build Memcached
-# print("Building memcached...")
-# cmd = "cd ~/{}/shenango-memcached && make clean && make"\
-#         .format(ARTIFACT_PATH)
-# execute_remote([server_conn], cmd, True)
-
-# # Build McClient
-# print("Building mcclient...")
-# cmd = "cd ~/{}/memcached-client && make clean && make"\
-#         .format(ARTIFACT_PATH)
-# execute_remote([client_conn] + agent_conns, cmd, True)
-
-
 ### IOKERNEL
 # Old Execute IOKernel
 # iok_sessions = []
@@ -212,6 +153,27 @@ iok_sessions += execute_remote([client_conn], cmd, False)
 sleep(1)
 ### END IOKERNEL
 
+### START server applications
+
+# Start swaptions
+print("Starting swaptions application")
+cmd = "cd ~/{} && export SHMKEY=102 &&"\
+    " parsec/pkgs/apps/swaptions/inst/amd64-linux.gcc-shenango-gc/bin/swaptions"\
+    " swaptionsGC.config -ns 5000000 -sm 400 -nt 17  > swaptionsGC.out 2> swaptionsGC.err".format(ARTIFACT_PATH)
+server_swaptions_session = execute_remote([server_conn], cmd, False)
+
+# Start shm query breakwater mem? what does this mean
+print("Starting shm query breakwater")
+cmd = "cd ~/{} && export SHMKEY=102 &&"\
+    " sudo ./caladan/apps/netbench/stress_shm_query membw:1000 > mem.log 2>&1".format(ARTIFACT_PATH)
+server_shmqueryBW_session = execute_remote([server_conn], cmd, False)
+
+# Start shm query from I guess swaptions?
+print("Starting shm query swaptions")
+cmd = "cd ~/{} && export SHMKEY=102 &&"\
+    " sudo ./caladan/apps/netbench/stress_shm_query 102:1000:17  > swaptionsGC_shm_query.out 2>&1".format(ARTIFACT_PATH)
+server_shmquerySWAPTIONS_session = execute_remote([server_conn], cmd, False)
+
 # Start memcached
 print("Starting Memcached server...")
 # cmd = "cd ~/{} && sudo ./shenango-memcached/memcached {} server.config"\
@@ -221,10 +183,12 @@ cmd = "cd ~/{} && sudo ./memcached/memcached {} memcached.config -t 17"\
     " -U 5056 -p 5056 -c 32768 -m 32000 -b 32768 -o"\
     " hashpower=25,no_hashexpand,no_lru_crawler,no_lru_maintainer,idle_timeout=0,no_slab_reassign"\
     " > memcached.out 2> memcached.err".format(ARTIFACT_PATH, OVERLOAD_ALG)
-server_session = execute_remote([server_conn], cmd, False)
-server_session = server_session[0]
+server_memcached_session = execute_remote([server_conn], cmd, False)
+server_memcached_session = server_memcached_session[0]
 
 sleep(2)
+
+### END SERVER APPLICATIONS
 ### TODO unsure what this entire section is doing
 # print("Populating entries...")
 # cmd = "cd ~/{} && sudo ./memcached-client/mcclient {} client.config client {:d} {} SET"\
@@ -262,6 +226,11 @@ client_agent_sessions += execute_remote([client_conn], cmd, False)
 
 sleep(1)
 
+for client_agent_session in client_agent_sessions:
+    client_agent_session.recv_exit_status()
+
+sleep(2)
+
 ### No need for this right now I think TODO
 # for offered_load in OFFERED_LOADS:
 #     print("Load = {:d}".format(offered_load))
@@ -295,7 +264,18 @@ cmd = "sudo killall -9 memcached"
 execute_remote([server_conn], cmd, True)
 
 # Wait for the server
-server_session.recv_exit_status()
+server_memcached_session.recv_exit_status()
+
+# kill shm query
+cmd = "sudo killall -9 stress_shm_query"
+execute_remote([server_conn], cmd, True)
+server_shmqueryBW_session.recv_exit_status()
+server_shmquerySWAPTIONS_session.recv_exit_status()
+
+# kill swaptions
+cmd = "sudo killall -9 swaptions"
+execute_remote([server_conn], cmd, True)
+server_swaptions_session.recv_exit_status()
 
 # Kill IOKernel
 cmd = "sudo killall -9 iokerneld"
@@ -311,43 +291,43 @@ client_conn.close()
 for agent_conn in agent_conns:
     agent_conn.close()
 
-# Create output directory
-if not os.path.exists("outputs"):
-    os.mkdir("outputs")
+# # Create output directory
+# if not os.path.exists("outputs"):
+#     os.mkdir("outputs")
 
-# Move output.csv and output.json
-print("Collecting outputs...")
-cmd = "scp -P 22 -i {} -o StrictHostKeyChecking=no {}@{}:~/{}/output.csv ./"\
-        " >/dev/null".format(KEY_LOCATION, USERNAME, CLIENT, ARTIFACT_PATH)
-execute_local(cmd)
+# # Move output.csv and output.json
+# print("Collecting outputs...")
+# cmd = "scp -P 22 -i {} -o StrictHostKeyChecking=no {}@{}:~/{}/output.csv ./"\
+#         " >/dev/null".format(KEY_LOCATION, USERNAME, CLIENT, ARTIFACT_PATH)
+# execute_local(cmd)
 
-output_prefix = "{}".format(OVERLOAD_ALG)
+# output_prefix = "{}".format(OVERLOAD_ALG)
 
-if SPIN_SERVER:
-    output_prefix += "_spin"
+# if SPIN_SERVER:
+#     output_prefix += "_spin"
 
-if DISABLE_WATCHDOG:
-    output_prefix += "_nowd"
+# if DISABLE_WATCHDOG:
+#     output_prefix += "_nowd"
 
-output_prefix += "_memcached_nconn_{:d}".format(NUM_CONNS)
+# output_prefix += "_memcached_nconn_{:d}".format(NUM_CONNS)
 
-# Print Headers
-header = "num_clients,offered_load,throughput,goodput,cpu,min,mean,p50,p90,p99,p999,p9999"\
-        ",max,lmin,lmean,lp50,lp90,lp99,lp999,lp9999,lmax,p1_win,mean_win,p99_win,p1_q,mean_q,p99_q,server:rx_pps"\
-        ",server:tx_pps,server:rx_bps,server:tx_bps,server:rx_drops_pps,server:rx_ooo_pps"\
-        ",server:winu_rx_pps,server:winu_tx_pps,server:win_tx_wps,server:req_rx_pps"\
-        ",server:resp_tx_pps,client:min_tput,client:max_tput"\
-        ",client:winu_rx_pps,client:winu_tx_pps,client:resp_rx_pps,client:req_tx_pps"\
-        ",client:win_expired_wps,client:req_dropped_rps"
-cmd = "echo \"{}\" > outputs/{}.csv".format(header, output_prefix)
-execute_local(cmd)
+# # Print Headers
+# header = "num_clients,offered_load,throughput,goodput,cpu,min,mean,p50,p90,p99,p999,p9999"\
+#         ",max,lmin,lmean,lp50,lp90,lp99,lp999,lp9999,lmax,p1_win,mean_win,p99_win,p1_q,mean_q,p99_q,server:rx_pps"\
+#         ",server:tx_pps,server:rx_bps,server:tx_bps,server:rx_drops_pps,server:rx_ooo_pps"\
+#         ",server:winu_rx_pps,server:winu_tx_pps,server:win_tx_wps,server:req_rx_pps"\
+#         ",server:resp_tx_pps,client:min_tput,client:max_tput"\
+#         ",client:winu_rx_pps,client:winu_tx_pps,client:resp_rx_pps,client:req_tx_pps"\
+#         ",client:win_expired_wps,client:req_dropped_rps"
+# cmd = "echo \"{}\" > outputs/{}.csv".format(header, output_prefix)
+# execute_local(cmd)
 
-cmd = "cat output.csv >> outputs/{}.csv".format(output_prefix)
-execute_local(cmd)
+# cmd = "cat output.csv >> outputs/{}.csv".format(output_prefix)
+# execute_local(cmd)
 
-# Remove temp outputs
-cmd = "rm output.csv"
-execute_local(cmd, False)
+# # Remove temp outputs
+# cmd = "rm output.csv"
+# execute_local(cmd, False)
 
-print("Output generated: outputs/{}.csv".format(output_prefix))
-print("Done.")
+# print("Output generated: outputs/{}.csv".format(output_prefix))
+# print("Done.")
