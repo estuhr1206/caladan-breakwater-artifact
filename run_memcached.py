@@ -208,7 +208,7 @@ distribution = "zero"           # not sure what this is. seems unused.
 pps = 0.8                       # packets per second. seems unused.
 samples = 1                     # no idea what this is. seems unused.
 spps = 0.0                      # start packets per second, seems unused.
-loadrate_duration = 20000000    # seems to be the runtime in microseconds
+loadrate_duration = "{:d}:{:d}000000".format(SINGLE_CLIENT_LOAD, duration)    # load:runtime(us)
 print("\tExecuting client...")
 client_agent_sessions = []
 cmd = "cd ~/{} && sudo ./memcached-client/mcclient {} client.config client {:d} {}"\
