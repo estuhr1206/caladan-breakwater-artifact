@@ -48,12 +48,6 @@ if OVERLOAD_ALG not in ["breakwater", "seda", "dagor", "nocontrol"]:
     print("Unknown overload algorithm: " + OVERLOAD_ALG)
     exit()
 
-# modifying config in breakwater/src/bw_config.h
-# TODO this will need to be a remote command, with pathing probably modified for the remote machines
-cmd = "sed -i'.orig' -e \'s/#define SBW_RTT_US.*/#define SBW_RTT_US\\t\\t\\t{:d}/g\'"\
-        " configs/bw_config.h".format(NET_RTT)
-execute_local(cmd)
-
 ### Function definitions ###
 def generate_shenango_config(is_server ,conn, ip, netmask, gateway, num_cores,
         directpath, spin, disable_watchdog):

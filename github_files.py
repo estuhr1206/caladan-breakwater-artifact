@@ -1,20 +1,14 @@
 #!/usr/bin/env python3
 
-import paramiko
 import os
 from util import *
 from config_remote import *
 
-k = paramiko.RSAKey.from_private_key_file(KEY_LOCATION)
-# connection to server
-server_conn = paramiko.SSHClient()
-server_conn.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-server_conn.connect(hostname = SERVER, username = USERNAME, pkey = k)
-
-# connection to client
-client_conn = paramiko.SSHClient()
-client_conn.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-client_conn.connect(hostname = CLIENT, username = USERNAME, pkey = k)
+# # modifying config in breakwater/src/bw_config.h
+# # TODO or just note that it can be done before copying the files over in the bw_config.h
+# cmd = "sed -i'.orig' -e \'s/#define SBW_RTT_US.*/#define SBW_RTT_US\\t\\t\\t{:d}/g\'"\
+#         " configs/bw_config.h".format(NET_RTT)
+# execute_local(cmd)
 
 # repo_name = (os.getcwd().split('/'))[-1]
 repo_name = "caladan-breakwater-base"
