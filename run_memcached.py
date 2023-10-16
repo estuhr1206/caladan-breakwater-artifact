@@ -155,18 +155,21 @@ cmd = "cd ~/{} && export SHMKEY=102 &&"\
     " parsec/pkgs/apps/swaptions/inst/amd64-linux.gcc-shenango-gc/bin/swaptions"\
     " swaptionsGC.config -ns 5000000 -sm 400 -nt 17  > swaptionsGC.out 2> swaptionsGC.err".format(ARTIFACT_PATH)
 server_swaptions_session = execute_remote([server_conn], cmd, False)
+sleep(1)
 
 # Start shm query breakwater mem? what does this mean
 print("Starting shm query breakwater")
 cmd = "cd ~/{} && export SHMKEY=102 &&"\
     " sudo ./caladan/apps/netbench/stress_shm_query membw:1000 > mem.log 2>&1".format(ARTIFACT_PATH)
 server_shmqueryBW_session = execute_remote([server_conn], cmd, False)
+sleep(1)
 
 # Start shm query from I guess swaptions?
 print("Starting shm query swaptions")
 cmd = "cd ~/{} && export SHMKEY=102 &&"\
     " sudo ./caladan/apps/netbench/stress_shm_query 102:1000:17  > swaptionsGC_shm_query.out 2>&1".format(ARTIFACT_PATH)
 server_shmquerySWAPTIONS_session = execute_remote([server_conn], cmd, False)
+sleep(1)
 
 # Start memcached
 print("Starting Memcached server...")
@@ -251,7 +254,7 @@ sleep(2)
 
 #     sleep(2)
 
-
+print("killing memcached")
 # Kill server
 cmd = "sudo killall -9 memcached"
 execute_remote([server_conn], cmd, True)
@@ -260,17 +263,20 @@ execute_remote([server_conn], cmd, True)
 server_memcached_session[0].recv_exit_status()
 
 # kill shm query
+print("killing stress shm queries")
 cmd = "sudo killall -9 stress_shm_query"
 execute_remote([server_conn], cmd, True)
 server_shmqueryBW_session[0].recv_exit_status()
 server_shmquerySWAPTIONS_session[0].recv_exit_status()
 
 # kill swaptions
+print("killing swaptions")
 cmd = "sudo killall -9 swaptions"
 execute_remote([server_conn], cmd, True)
 server_swaptions_session[0].recv_exit_status()
 
 # Kill IOKernel
+print("kill iokernel")
 cmd = "sudo killall -9 iokerneld"
 execute_remote([server_conn, client_conn] + agent_conns, cmd, True)
 
