@@ -52,7 +52,7 @@ popd
 echo building BOEHMGC
 pushd boehmGC
 ./autogen.sh
-./configure --prefix=/users/estuhr/bw_artif/boehmGC --enable-static --enable-large-config --enable-handle-fork=no --enable-dlopen=no --disable-java-finalization --enable-threads=shenango --enable-shared=no --with-shenango=/users/estuhr/bw_artif/caladan
+./configure --prefix=/users/estuhr/bw_artif/boehmGC/build --enable-static --enable-large-config --enable-handle-fork=no --enable-dlopen=no --disable-java-finalization --enable-threads=shenango --enable-shared=no --with-shenango=/users/estuhr/bw_artif/caladan
 make install
 popd
 
