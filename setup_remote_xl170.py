@@ -33,7 +33,7 @@ execute_remote([server_conn, client_conn] + agent_conns, cmd, True)
 
 # ksched and machine setup
 print("Building in ksched, building Caladan, and running machine setup script")
-cmd = "cd ~/{}/caladan && pushd ksched && make clean && make && popd".format(ARTIFACT_PATH)
+cmd = "cd ~/{}/caladan && pushd ksched && make clean && make && popd && make clean && make".format(ARTIFACT_PATH)
 execute_remote([server_conn, client_conn] + agent_conns, cmd, True)
 
 cmd = "cd ~/{}/caladan && sudo ./scripts/setup_machine.sh".format(ARTIFACT_PATH)
@@ -45,12 +45,12 @@ cmd = "sudo apt-get update"
 execute_remote([server_conn, client_conn] + agent_conns, cmd, True)
 
 # why is this installing make, AFTER we've already used it a bit??
-print("installing clang")
+print("installing make, gcc, cmake, etc.")
 cmd = "sudo apt-get -y install make gcc cmake pkg-config libnl-3-dev libnl-route-3-dev"\
         " libnuma-dev uuid-dev libssl-dev libaio-dev libcunit1-dev libclang-dev"
 execute_remote([server_conn, client_conn] + agent_conns, cmd, True)
 
-print("installing make, gcc, cmake, etc.")
+print("installing clang")
 cmd = "sudo apt-get -y install clang"
 execute_remote([server_conn, client_conn] + agent_conns, cmd, True)
 
