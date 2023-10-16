@@ -60,5 +60,6 @@ echo building PARSEC
 for p in x264 swaptions streamcluster; do
 	parsec/bin/parsecmgmt -a build -p $p -c gcc-shenango
 done
-export GCDIR=/users/estuhr/bw_artif/boehmGC
+
+export GCDIR=/users/estuhr/bw_artif/boehmGC/build/
 parsec/bin/parsecmgmt -a build -p swaptions -c gcc-shenango-gc
