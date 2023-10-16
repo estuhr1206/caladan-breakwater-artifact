@@ -178,7 +178,6 @@ cmd = "cd ~/{} && sudo ./memcached/memcached {} memcached.config -t 17"\
     " hashpower=25,no_hashexpand,no_lru_crawler,no_lru_maintainer,idle_timeout=0,no_slab_reassign"\
     " > memcached.out 2> memcached.err".format(ARTIFACT_PATH, OVERLOAD_ALG)
 server_memcached_session = execute_remote([server_conn], cmd, False)
-server_memcached_session = server_memcached_session[0]
 
 sleep(2)
 
@@ -211,7 +210,7 @@ spps = 0.0                      # start packets per second, seems unused.
 loadrate_duration = "{:d}:{:d}000000".format(SINGLE_CLIENT_LOAD, duration)    # load:runtime(us)
 print("\tExecuting client...")
 client_agent_sessions = []
-cmd = "cd ~/{} && sudo ./memcached-client/mcclient {} client.config client {:d} {}"\
+cmd = "cd ~/{} && sudo ./memcached-client/mcclient {} ./caladan/client.config client {:d} {}"\
         " USR {:d} {:d} {:d} {:d} {:d} {:d} {} {:f} {:d} {:f} {} > 0-node-1.memcached.out 2> 0-node-1.memcached.err"\
         .format(ARTIFACT_PATH, OVERLOAD_ALG, NUM_CONNS, server_ip,
                 MAX_KEY_INDEX, slo, NUM_AGENT, SINGLE_CLIENT_LOAD, duration, mean, distribution,
@@ -258,18 +257,18 @@ cmd = "sudo killall -9 memcached"
 execute_remote([server_conn], cmd, True)
 
 # Wait for the server
-server_memcached_session.recv_exit_status()
+server_memcached_session[0].recv_exit_status()
 
 # kill shm query
 cmd = "sudo killall -9 stress_shm_query"
 execute_remote([server_conn], cmd, True)
-server_shmqueryBW_session.recv_exit_status()
-server_shmquerySWAPTIONS_session.recv_exit_status()
+server_shmqueryBW_session[0].recv_exit_status()
+server_shmquerySWAPTIONS_session[0].recv_exit_status()
 
 # kill swaptions
 cmd = "sudo killall -9 swaptions"
 execute_remote([server_conn], cmd, True)
-server_swaptions_session.recv_exit_status()
+server_swaptions_session[0].recv_exit_status()
 
 # Kill IOKernel
 cmd = "sudo killall -9 iokerneld"
