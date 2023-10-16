@@ -136,12 +136,12 @@ sleep(1)
 
 iok_sessions = []
 print("starting server IOKernel")
-cmd = "cd ~/{}/caladan && sudo /users/estuhr/caladan/iokerneld ias"\
+cmd = "sudo ~/{}/caladan/iokerneld ias"\
     " 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18  2>&1 | ts %s > iokernel.node-0.log".format(ARTIFACT_PATH)
 iok_sessions += execute_remote([server_conn], cmd, False)
 
 print("starting client IOKernel")
-cmd = "sudo /users/estuhr/caladan/iokerneld simple 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18"\
+cmd = "sudo ~/{}/caladan/iokerneld simple 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18"\
     " 2>&1 | ts %s > iokernel.node-1.log".format(ARTIFACT_PATH)
 iok_sessions += execute_remote([client_conn], cmd, False)
 sleep(1)
@@ -212,7 +212,7 @@ loadrate_duration = "{:d}:{:d}000000".format(SINGLE_CLIENT_LOAD, duration)    # 
 print("\tExecuting client...")
 client_agent_sessions = []
 cmd = "cd ~/{} && sudo ./memcached-client/mcclient {} client.config client {:d} {}"\
-        " USR {:d} {:d} {:d} {:d} {:d} {:d} {} {:f} {:d} {:f} {:d} > 0-node-1.memcached.out 2> 0-node-1.memcached.err"\
+        " USR {:d} {:d} {:d} {:d} {:d} {:d} {} {:f} {:d} {:f} {} > 0-node-1.memcached.out 2> 0-node-1.memcached.err"\
         .format(ARTIFACT_PATH, OVERLOAD_ALG, NUM_CONNS, server_ip,
                 MAX_KEY_INDEX, slo, NUM_AGENT, SINGLE_CLIENT_LOAD, duration, mean, distribution,
                 pps, samples, spps, loadrate_duration)
