@@ -136,12 +136,12 @@ sleep(1)
 
 iok_sessions = []
 print("starting server IOKernel")
-cmd = "sudo ~/{}/caladan/iokerneld ias"\
+cmd = "cd ~/{} && sudo ./caladan/iokerneld ias"\
     " 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18  2>&1 | ts %s > iokernel.node-0.log".format(ARTIFACT_PATH)
 iok_sessions += execute_remote([server_conn], cmd, False)
 
 print("starting client IOKernel")
-cmd = "sudo ~/{}/caladan/iokerneld simple 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18"\
+cmd = "cd ~/{} && sudo ./caladan/iokerneld simple 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18"\
     " 2>&1 | ts %s > iokernel.node-1.log".format(ARTIFACT_PATH)
 iok_sessions += execute_remote([client_conn], cmd, False)
 sleep(1)
