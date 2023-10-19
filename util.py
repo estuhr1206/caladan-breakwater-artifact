@@ -14,7 +14,7 @@ def execute_remote(conns, cmd, wait=True, must_succeed=True):
             stderr = ""
             if session.recv_exit_status() != 0 and must_succeed:
                 while session.recv_stderr_ready():
-                    stderr += session.recv_stderr(BUF_SIZE).decode("utf-8")
+                    stderr += session.recv_stderr(BUF_SIZE).decode("utf-8", "ignore")
                 print(stderr)
                 exit()
 
