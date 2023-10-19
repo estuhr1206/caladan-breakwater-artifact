@@ -25,6 +25,7 @@ client_conn.connect(hostname = CLIENT, username = USERNAME, pkey = k)
 ## 'name': "run.{}".format(datetime.now().strftime('%Y%m%d%H%M%S')),
 print("Setting up server, making directory and installing python modules")
 directory_name = "run.{}".format(datetime.now().strftime('%Y%m%d%H%M%S'))
+directory_name += "-caladan-memcached_trace"
 cmd = "cd ~/{} && mkdir {}".format(ARTIFACT_PATH, directory_name)
 execute_remote([server_conn], cmd, True)
 cmd = "pip3 install pandas && pip3 install matplotlib"
@@ -32,9 +33,9 @@ execute_remote([server_conn], cmd, True)
 
 # move files from client to server
 print("moving files from client to server")
-cmd = "scp -r 0-node-1.memcached.* ssh {}:/users/{}/{}".format(SERVER, USERNAME, directory_name)
+cmd = "scp -r 0-node-1.memcached.* {}:/users/{}/{}".format(SERVER, USERNAME, directory_name)
 execute_remote([client_conn], cmd, True)
-cmd = "scp -r iokernel.node-1.log ssh {}:/users/{}/{}".format(SERVER, USERNAME, directory_name)
+cmd = "scp -r iokernel.node-1.log {}:/users/{}/{}".format(SERVER, USERNAME, directory_name)
 execute_remote([client_conn], cmd, True)
 
 # move files around on server
@@ -50,38 +51,12 @@ execute_remote([server_conn], cmd, True)
 
 # create graphs
 print("producing graphs")
-cmd = ""
+cmd = "cd ~/{} && python3 ~/{}/caladan-all/create_corecsv.py {}".format(ARTIFACT_PATH, directory_name,
+                                                                           ARTIFACT_PATH, directory_name)
+execute_remote([server_conn], cmd, True)
+cmd = "cd ~/{} && python3 ~/{}/caladan-all/graph.py {}".format(ARTIFACT_PATH, directory_name,
+                                                                  ARTIFACT_PATH, directory_name)
+execute_remote([server_conn], cmd, True)
 
-
-"""
-mv caladan/mem.log run.20230228215633-caladan-memcached_trace/
-mv caladan/swaptionsGC_shm_query.out run.20230228215633-caladan-memcached_trace/
-mv iokernel.node-0.log memcached.err memcached.out swaptionsGC.out swaptionsGC.err run.20230228215633-caladan-memcached_trace/
-cp server.config 0-node-1.memcached.config
-cp 0-node-1.memcached.config server.config swaptionsGC.config run.20230228215633-caladan-memcached_trace/
-
-python3 caladan-all/create_corecsv.py
-python3 caladan-all/graph.py run.20230228215633-caladan-memcached_trace/
-
-----------------Optional------------------------------
-In caladan-all
-vi x.sh
-
-set -e
-set -x
-
-# record BASE_DIR
-SCRIPT=$(readlink -f "$0")
-SCRIPTPATH=$(dirname "$SCRIPT")
-echo "BASE_DIR = '${SCRIPTPATH}/'" > base_dir.py
-
-chmod +x x.sh
-./x.sh
--------------Optional till here - if python command gives error - base_dir one------------------------------
-pip3 install pandas
-pip3 install matplotlib
-
-
-"""
-
+print("Graph files are on server. Feel free to use appropriate tools such as scp to move them.")
 
