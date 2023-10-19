@@ -38,16 +38,16 @@ print("moving files from client to server")
 # cmd = "cd ~/{} && scp -r iokernel.node-1.log {}@{}:/users/{}/{}".format(ARTIFACT_PATH, USERNAME, SERVER, USERNAME, directory_name)
 # execute_remote([client_conn], cmd, True)
 # Seems like because of keys and all that, need to do some redirection through the local machine
-cmd = "cmd = scp -P 22 -i {} -o StrictHostKeyChecking=no {}@{}:~/{}/0-node-1.memcached.* .".format(
+cmd = "scp -P 22 -i {} -o StrictHostKeyChecking=no {}@{}:~/{}/0-node-1.memcached.* .".format(
                                                         KEY_LOCATION, USERNAME, CLIENT, ARTIFACT_PATH)
 execute_local(cmd)
-cmd = "cmd = scp -P 22 -i {} -o StrictHostKeyChecking=no {}@{}:~/{}/iokernel.node-1.log .".format(
+cmd = "scp -P 22 -i {} -o StrictHostKeyChecking=no {}@{}:~/{}/iokernel.node-1.log .".format(
                                                         KEY_LOCATION, USERNAME, CLIENT, ARTIFACT_PATH)
 execute_local(cmd)
-cmd = "cmd = scp -P 22 -i {} -o StrictHostKeyChecking=no ./0-node-1.memcached.* {}@{}:~/{}".format(
+cmd = "scp -P 22 -i {} -o StrictHostKeyChecking=no ./0-node-1.memcached.* {}@{}:~/{}".format(
                                                         KEY_LOCATION, USERNAME, SERVER, directory_name)
 execute_local(cmd)
-cmd = "cmd = scp -P 22 -i {} -o StrictHostKeyChecking=no ./iokernel.node-1.log {}@{}:~/{}".format(
+cmd = "scp -P 22 -i {} -o StrictHostKeyChecking=no ./iokernel.node-1.log {}@{}:~/{}".format(
                                                         KEY_LOCATION, USERNAME, SERVER, directory_name)
 execute_local(cmd)
 
