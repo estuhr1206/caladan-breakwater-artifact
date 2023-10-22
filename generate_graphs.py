@@ -71,6 +71,11 @@ cmd = "cd ~ && python3 ~/{}/caladan-all/create_corecsv.py {}".format(ARTIFACT_PA
 execute_remote([server_conn], cmd, True)
 cmd = "cd ~ && python3 ~/{}/caladan-all/graph.py {}".format(ARTIFACT_PATH, directory_name)
 execute_remote([server_conn], cmd, True)
+cmd = "cd ~ && mv figure_6_caladan.pdf ~/{}".format(directory_name)
+execute_remote([server_conn], cmd, True)
+
+cmd = "cd ~ && mv PID.txt ~/{}".format(directory_name)
+execute_remote([server_conn], cmd, True)
 
 print("Graph files are on server. Feel free to use appropriate tools such as scp to move them.")
 

@@ -184,6 +184,19 @@ server_memcached_session = execute_remote([server_conn], cmd, False)
 
 sleep(2)
 
+# getting PIDs
+# memcached stress_shm_query swaptions iokerneld
+print("grab PIDs at server")
+cmd = "cd ~ && echo memcached > PID.txt && pidof memcached >> PID.txt"
+execute_remote([server_conn], cmd, True)
+cmd = "cd ~ && echo swaptions >> PID.txt && pidof swaptions >> PID.txt"
+execute_remote([server_conn], cmd, True)
+cmd = "cd ~ && echo iokerneld >> PID.txt && pidof iokerneld >> PID.txt"
+execute_remote([server_conn], cmd, True)
+cmd = "cd ~ && echo stress_shm_query >> PID.txt && pidof stress_shm_query >> PID.txt"
+execute_remote([server_conn], cmd, True)
+sleep(1)
+
 ### END SERVER APPLICATIONS
 ### TODO unsure what this entire section is doing
 # print("Populating entries...")
